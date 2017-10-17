@@ -17,28 +17,42 @@
             </p>
         </div>
       </form>
+
+      <!-- success -->
+      <div v-if="isSuccess">
+        <h2>Uploaded {{ uploadedFiles.length }} file(s) succesfully</h2>
+        <p>
+          <a href="javascript:void(0)" @click="reset()">Upload Again</a>
+        </p>
+        <ul class="list-unstyled">
+          <li v-for="item in uploadedFiles" v-bind:key="item">
+            <img :src="item.url" :alt="item.originalName" class="img-responsive img-thumbnail">
+          </li>
+        </ul>
+      </div>
+
+      <!--failed-->
+      <div v-if="isFailed">
+        <h2>Uploaded Failed</h2>
+        <p>
+          <a href="javascript:void(0)" @click="reset()">try again</a>
+        </p>
+        <pre>{{ uploadError }}</pre>
+      </div>
+
   </div>
     </div>  
 </template>
 
 <!-- Javascript -->
 <script>
+
+  import {upload} from './file-upload.fake.service';
+
   const STATUS_INITIAL=0, STATUS_SAVING=1, STATUS_SUCCESS=2, STATUS_FAILED=3;
 
-  /*
-  
-        <h1>Upload Starbucks Card</h1>
-        <div class="dropbox">
-          <input type="file" multiple :name="uploadFieldName" :disabled="isSaving" @change="filesChange($event.target.name, $event.target.files); fileCount = $event.target.files.length" accept="image/*" class="input-file">
-          <p v-if="isInitial">
-            Drag your file(s) here to begin <br> or click to browse
-          </p>
-
-          <p v-if="isSaving">
-            Cargando {{ fileCount }} archivos de Arte de Starbucks Card.
-          </p>
-        </div>
-      </form>  */
+  //https://sbxtstcard.blob.core.windows.net/cardart?st=2017-10-17T14%3A30%3A00Z&se=2110-10-18T14%3A30%3A00Z&sp=rwdl&sv=2016-05-31&sr=c&sig=cv5P0ggq1wOXAULokFD4T5z1NCjEv5hAfuNLLIzlwVo%3D
+  //?st=2017-10-17T14%3A30%3A00Z&se=2110-10-18T14%3A30%3A00Z&sp=rwdl&sv=2016-05-31&sr=c&sig=cv5P0ggq1wOXAULokFD4T5z1NCjEv5hAfuNLLIzlwVo%3D
 
   export default{
     name: 'app',
@@ -70,6 +84,36 @@
         this.currentStatus = STATUS_INITIAL;
         this.uploadedFiles = [];
         this.uploadedError = null;
+      },
+      save(formData){
+        // upload data to the server
+        this.currentStatus = STATUS_SAVING;
+
+        upload(formData)
+          .then(x=>{
+            this.uploadedFiles = [].concat(x);
+            this.currentStatus = STATUS_SUCCESS;
+          })
+          .catch(err=>{
+            this.uploadError = err.response;
+            this.currentStatus = STATUS_FAILED;
+          });
+      },
+
+      filesChange(fieldName, fileList){
+        //handle file changes
+        const formData = new FormData();
+        if (!fileList.length) return;
+
+        // append the files to FormData
+        Array
+          .from(Array(fileList.length).keys())
+          .map( x =>{
+            formData.append(fieldName, fileList[x], fileList[x].name);
+          });
+
+        //save it
+        this.save(formData);
       }
     },
     mounted(){
